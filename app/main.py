@@ -1,7 +1,9 @@
 from fastapi import FastAPI, status
 
+from config import settings
+
 app = FastAPI(
-    title="Web Scraping Intelligence API",
+    title=settings.app_name,
     description="API for web scraping, data processing, and Google Sheets automation",
     version="1.0.0"
 )
