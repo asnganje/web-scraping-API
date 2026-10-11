@@ -1,5 +1,6 @@
 from fastapi import FastAPI, status
 
+from app.api.router import api_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -7,6 +8,8 @@ app = FastAPI(
     description="API for web scraping, data processing, and Google Sheets automation",
     version="1.0.0"
 )
+
+app.include_router(api_router)
 
 @app.get("/", status_code=status.HTTP_200_OK, tags=["Home"])
 def root():
