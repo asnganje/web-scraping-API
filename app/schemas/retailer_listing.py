@@ -10,7 +10,7 @@ class RetailerListingCreate(BaseModel):
     currency:str=Field(default="USD", min_length=3, max_length=3)
     is_available:bool | None = None
 
-class RetailerListResponse(BaseModel):
+class RetailerListingResponse(BaseModel):
     id:int
     retailer_id:int
     product_id:int
