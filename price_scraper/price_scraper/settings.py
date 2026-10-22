@@ -19,7 +19,7 @@ ADDONS = {}
 #USER_AGENT = "price_scraper (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
@@ -100,3 +100,6 @@ PLAYWRIGHT_BROWSER_TYPE = "chromium"
 
 CONCURRENT_REQUESTS = 4
 
+PLAYWRIGHT_LAUNCH_OPTIONS = {
+    "headless": False,
+}
