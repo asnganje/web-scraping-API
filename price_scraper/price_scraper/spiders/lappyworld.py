@@ -1,12 +1,15 @@
-from playwright.async_api import Page
+import json
 import scrapy
-from scrapy_playwright.page import PageMethod
+from urllib.request import Request, urlopen
 
 
 class LappyWorldSpider(scrapy.Spider):
     name = "lappyworld"
-    # allowed_domains = ["jumia.co.ke"]
     start_urls = ["https://laptopsworld.co.ke/"]
+    target_product_id="5812"
+    target_product_name="HP EliteBook x360 1030 G3"
+    api_url="http://localhost:8000/api/v1/products/"
+
     async def start(self):
         for url in self.start_urls:
             yield scrapy.Request(
@@ -20,11 +23,44 @@ class LappyWorldSpider(scrapy.Spider):
 
 
     async def parse(self, response):
-        page: Page = response.meta["playwright_page"]
+        card = response.css(f"div.wd-product[data-id='{self.target_product_id}']")
+        if not card:
+            self.logger.warning("Product ID not found", self.target_product_id)
+            return
+        name = card.css(
+            "h3.wd-entities-title a::text"
+        ).get()
+        if not name or name.strip() != self.target_product_name:
+            self.logger.warning("Product name did not match")
+            return
+        category=card.css(
+            ".wd-product-cats a::text"
+        ).get()
 
+        payload= {
+            "name":name.strip(),
+            "brand":"HP",
+            "model_number":"x360 1030 G3",
+            "category":category.strip() if category else None
+        }
+
+        request = Request(
+            self.api_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
         try:
-            await page.wait_for_timeout(30_000)
-        finally:
-            await page.close()
-            self.logger.info("Browser page closed.")
+            with urlopen(request, timeout=15) as api_response:
+                self.logger.info(
+                    "Product saved: %s | API status %s",
+                    name.strip(),
+                    api_response.status
+                )
+        except Exception as exc:
+            self.logger.error(
+                "Failed to send product to API %s", exc
+            )
+
+
 
