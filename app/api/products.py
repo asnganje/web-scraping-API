@@ -34,6 +34,19 @@ def create_product(payload:ProductCreate, db:Session=Depends(get_db)):
     db.refresh(new_product)
     return new_product
 
+@router.get("/by-name/{product_name}", status_code=status.HTTP_200_OK, response_model=ProductResponse)
+def get_product_by_name(product_name:str, db:Session=Depends(get_db)):
+    product = db.query(Product).filter(
+        Product.name == product_name
+    )
+
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    return product
+
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[ProductResponse])
 def get_products(db:Session=Depends(get_db)):
     statement=select(Product)

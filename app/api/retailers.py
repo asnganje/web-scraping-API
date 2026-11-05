@@ -43,6 +43,19 @@ def get_retailers(db:Session=Depends(get_db)):
     retailers_output=results.scalars().all()
     return retailers_output
 
+@router.get("/by-name/{retailer_name}", status_code=status.HTTP_200_OK, response_model=RetailerResponse)
+def get_retailer_by_name(retailer_name:str, db:Session=Depends(get_db)):
+    retailer = db.query(Retailer).filter(
+        Retailer.name == retailer_name
+    )
+
+    if retailer is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Retailer not found"
+        )
+    return retailer
+
 @router.get("/{retailer_id}", status_code=status.HTTP_200_OK, response_model=RetailerResponse)
 def get_retailer(retailer_id:int, db:Session=Depends(get_db)):
     retailer = db.get(Retailer, retailer_id)
