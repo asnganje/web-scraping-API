@@ -1,10 +1,9 @@
 import json
 from urllib.error import HTTPError
-from urllib.parse import quote
-
+from urllib.parse import quote, urlencode
+from decimal import Decimal
 import scrapy
 from urllib.request import Request, urlopen
-
 
 class LappyWorldSpider(scrapy.Spider):
     name = "lappyworld"
@@ -46,6 +45,9 @@ class LappyWorldSpider(scrapy.Spider):
         current_price = card.css(
             ".price .woocommerce-Price-amount bdi::text"
         ).get()
+        current_price = Decimal(
+            current_price.replace("\xa0", "").replace(",", "").strip()
+        )
         if not current_price:
             self.logger.warning("Price not found")
             return
@@ -94,6 +96,7 @@ class LappyWorldSpider(scrapy.Spider):
 
 
     def save_retailer(self, product_id, product_url, current_price):
+        self.logger.info("Extracted price: %s", current_price)
         retailer_name="Laptops World"
         retailer_api_url="http://localhost:8000/api/v1/retailers/"
         payload={
@@ -146,5 +149,46 @@ class LappyWorldSpider(scrapy.Spider):
         self.save_retailer_listing(product_id, retailer_id, product_url, current_price)
         return None
     def save_retailer_listing(self, product_id, retailer_id, product_url, current_price):
-        return None
+        listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
+        listing_id = None
+
+        listing_payload={
+            "retailer_id":retailer_id,
+            "product_id":product_id,
+            "product_url": product_url,
+            "current_price": str(current_price),
+            "currency": "KES",
+            "is_available":True
+        }
+        request = Request(
+            listing_api_url,
+            data=json.dumps(listing_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                listing_data = json.loads(response.read().decode("utf-8"))
+                listing_id=listing_data["id"]
+        except HTTPError as exc:
+            if exc.code == 409:
+                params=urlencode({"product_url":product_url})
+                lookup_url=f"{listing_api_url}by-url?{params}"
+                try:
+                    with urlopen(lookup_url, timeout=15) as response:
+                        listing_data = json.loads(response.read().decode("utf-8"))
+                    listing_id = listing_data["id"]
+                except Exception as lookup_error:
+                    self.logger.error(lookup_error)
+                    return None
+            else:
+                self.logger.error("Retailer listing API error %s: %s",
+                                exc.code,
+                                  exc.read().decode("utf-8", errors="replace")
+                                  )
+        except Exception as exc:
+            self.logger.error("Failed to save retailer listing: %s", exc)
+        return listing_id
+
 

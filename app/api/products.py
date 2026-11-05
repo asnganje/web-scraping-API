@@ -38,7 +38,7 @@ def create_product(payload:ProductCreate, db:Session=Depends(get_db)):
 def get_product_by_name(product_name:str, db:Session=Depends(get_db)):
     product = db.query(Product).filter(
         Product.name == product_name
-    )
+    ).first()
 
     if product is None:
         raise HTTPException(

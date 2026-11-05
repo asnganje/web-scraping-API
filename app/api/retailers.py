@@ -47,7 +47,7 @@ def get_retailers(db:Session=Depends(get_db)):
 def get_retailer_by_name(retailer_name:str, db:Session=Depends(get_db)):
     retailer = db.query(Retailer).filter(
         Retailer.name == retailer_name
-    )
+    ).first()
 
     if retailer is None:
         raise HTTPException(

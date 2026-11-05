@@ -119,7 +119,7 @@ def update_retailer_listing(retailer_listing_id:int, payload: RetailerListingUpd
     db.refresh(retailer_listing)
     return retailer_listing
 
-@router.delete("/retailer_listing_id", status_code=status.HTTP_200_OK, response_model=dict)
+@router.delete("/{retailer_listing_id}", status_code=status.HTTP_200_OK, response_model=dict)
 def delete_retailer_listing(retailer_listing_id:int, db:Session=Depends(get_db)):
     retailer_listing = db.get(RetailerListing, retailer_listing_id)
     if retailer_listing is None:
