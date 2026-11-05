@@ -57,6 +57,16 @@ def get_retailer_listings(db:Session=Depends(get_db)):
     retailer_listings = results.scalars().all()
     return  retailer_listings
 
+@router.get("/by_url", status_code=status.HTTP_200_OK, response_model=RetailerListingResponse)
+def get_listing_by_url(product_url:str, db:Session=Depends(get_db)):
+    retailer_listing=db.query(RetailerListing).filter(RetailerListing.product_url == product_url).first()
+    if retailer_listing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Retailer listing not found"
+        )
+    return retailer_listing
+
 @router.get("/{retailer_listing_id}", status_code=status.HTTP_200_OK, response_model=RetailerListingResponse)
 def get_retailer_listing(retailer_listing_id:int, db:Session=Depends(get_db)):
     retailer_listing = db.get(RetailerListing, retailer_listing_id)
