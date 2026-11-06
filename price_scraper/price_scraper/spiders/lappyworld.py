@@ -189,6 +189,42 @@ class LappyWorldSpider(scrapy.Spider):
                                   )
         except Exception as exc:
             self.logger.error("Failed to save retailer listing: %s", exc)
+        if listing_id is not None:
+           self.save_price_history(listing_id, current_price)
         return listing_id
+
+    def save_price_history(self, listing_id, current_price):
+        price_history_api_url="http://localhost:8000/api/v1/price-history/"
+
+        price_payload={
+            "listing_id":listing_id,
+            "price":str(current_price),
+            "currency":"KES"
+        }
+
+        request = Request(
+            price_history_api_url,
+            data=json.dumps(price_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                price_data=json.loads(response.read().decode("utf-8"))
+            return price_data
+        except HTTPError as exc:
+            self.logger.error(
+                "Price History API error %s: %s",
+                exc.code,
+                exc.read().decode("utf-8", errors="replace")
+            )
+            return None
+        except Exception as exc:
+            self.logger.error(
+                "Failed to save price: %s",
+                exc
+            )
+            return None
 
 

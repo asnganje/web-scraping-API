@@ -57,7 +57,7 @@ def get_retailer_listings(db:Session=Depends(get_db)):
     retailer_listings = results.scalars().all()
     return  retailer_listings
 
-@router.get("/by_url", status_code=status.HTTP_200_OK, response_model=RetailerListingResponse)
+@router.get("/by-url", status_code=status.HTTP_200_OK, response_model=RetailerListingResponse)
 def get_listing_by_url(product_url:str, db:Session=Depends(get_db)):
     retailer_listing=db.query(RetailerListing).filter(RetailerListing.product_url == product_url).first()
     if retailer_listing is None:
