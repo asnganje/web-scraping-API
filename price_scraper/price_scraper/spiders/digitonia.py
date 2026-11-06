@@ -11,6 +11,7 @@ class DigitoniaSpider(scrapy.Spider):
     products_api_url = "http://localhost:8000/api/v1/products/"
     retailer_api_url = f"http://localhost:8000/api/v1/retailers/"
     retailer_listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
+    price_history_api_url = "http://localhost:8000/api/v1/price-history/"
     canonical_product_name = "HP ZBook Firefly 14 G10 | Core i7 13th Gen…"
     retailer_name = "Digitonia Systems Ltd"
     retailer_website = "https://www.digitonia.co.ke/"
@@ -119,12 +120,47 @@ class DigitoniaSpider(scrapy.Spider):
                 try:
                     with urlopen(lookup_url, timeout=15) as response:
                         listing_data=json.loads(response.read().decode("utf-8"))
-                    return listing_data["id"]
+                        listing_id = listing_data["id"]
                 except Exception as lookup_error:
                     self.logger.error("Failed to retrieve existing listing: %s", lookup_error)
                     return None
         except Exception as exc:
             self.logger.error("Failed to save retailer listing: %s", exc)
+        if listing_id is not None:
+            self.save_price_history(listing_id, current_price)
         return listing_id
+
+    def save_price_history(self, listing_id, current_price):
+        price_payload= {
+            "listing_id": listing_id,
+            "price":str(current_price),
+            "currency":"KES"
+        }
+
+        request = Request(
+            self.price_history_api_url,
+            data=json.dumps(price_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                price_data=json.loads(response.read().decode("utf-8"))
+            return price_data
+        except HTTPError as exc:
+            self.logger.error(
+                "Price History API error: %s",
+                exc.code,
+                exc.read().decode("utf-8", errors="replace")
+            )
+            return  None
+        except Exception as exc:
+            self.logger.error(
+                "Failed to save price: %s",
+                exc
+            )
+            return None
+
 
 
