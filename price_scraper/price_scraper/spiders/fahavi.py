@@ -136,7 +136,35 @@ class FahaviSpider(scrapy.Spider):
 
 
     def save_price_history(self, listing_id, current_price):
+        price_payload = {
+            "listing_id": listing_id,
+            "price": str(current_price),
+            "currency": "KES"
+        }
 
-        return listing_id
+        request = Request(
+            self.price_history_api_url,
+            data=json.dumps(price_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                price_data = json.loads(response.read().decode("utf-8"))
+            return price_data
+        except HTTPError as exc:
+            self.logger.error(
+                "Price History API error: %s",
+                exc.code,
+                exc.read().decode("utf-8", errors="replace")
+            )
+            return  None
+        except Exception as exc:
+            self.logger.error(
+                "Failed to save price: %s",
+                exc
+            )
+            return None
 
 
