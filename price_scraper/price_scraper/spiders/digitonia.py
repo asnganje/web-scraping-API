@@ -71,22 +71,23 @@ class DigitoniaSpider(scrapy.Spider):
         except HTTPError as exc:
             if exc.code == 409:
                 retailer_data = self.get_existing_record(self.retailer_api_url, self.retailer_name)
-                if retailer_data:
-                    return retailer_data["id"]
-            self.logger.error(
-                "Retailer API error %s: %s",
-                exc.code,
-                exc.read().decode("utf-8", errors="replace")
-            )
+                if not retailer_data:
+                    return None
+            else:
+                self.logger.error(
+                    "Retailer API error %s: %s",
+                    exc.code,
+                    exc.read().decode("utf-8", errors="replace")
+                )
+                return None
         except Exception as exc:
             self.logger.error("Failed to save retailer: %s", exc)
         retailer_id= retailer_data["id"]
-        self.save_retailer_listing(product_id,
+        return self.save_retailer_listing(product_id,
                                    retailer_id,
                                    product_url,
                                    current_price,
                                    is_available)
-        return None
 
     def save_retailer_listing(self, product_id, retailer_id, product_url, current_price, is_available):
         listing_id=None
