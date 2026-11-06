@@ -1,8 +1,10 @@
 from urllib.error import HTTPError
 from urllib.request import urlopen, Request
+from decimal import Decimal
 import json
 import scrapy
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
+
 
 class FahaviSpider(scrapy.Spider):
     name = "fahavi"
@@ -31,6 +33,7 @@ class FahaviSpider(scrapy.Spider):
         current_price=response.css("div.fh-pp__price b.is-sale::text").get()
         if current_price:
             current_price=current_price.split(" ")[-1]
+        current_price = Decimal(current_price.replace(",", "").strip())
         availability = response.css("p.fh-pp__stock::text").get()
         is_available=(availability.strip().lower() == "in stock"
                       if availability else False
@@ -91,6 +94,49 @@ class FahaviSpider(scrapy.Spider):
                                           )
 
     def save_retailer_listing(self, product_id, retailer_id, product_url, current_price, is_available):
-        return "me"
+        listing_id = None
+
+        listing_payload = {
+            "retailer_id": retailer_id,
+            "product_id": product_id,
+            "product_url": product_url,
+            "current_price": str(current_price),
+            "currency": "KES",
+            "is_available": is_available
+        }
+
+        request = Request(
+            self.retailer_listing_api_url,
+            data=json.dumps(listing_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                listing_data = json.loads(response.read().decode("utf-8"))
+                listing_id = listing_data["id"]
+        except HTTPError as exc:
+            if exc.code == 409:
+                params = urlencode({"product_url":product_url})
+                lookup_url=f"{self.retailer_listing_api_url}by-url?{params}"
+
+                try:
+                    with urlopen(lookup_url, timeout=15) as response:
+                        listing_data=json.loads(response.read().decode("utf-8"))
+                        listing_id=listing_data["id"]
+                except Exception as lookup_error:
+                    self.logger.error("Failed to retrieve existing listing: %s", lookup_error)
+                    return None
+        except Exception as exc:
+            self.logger.error("Failed to save retailer listing: %s", exc)
+        if listing_id is not None:
+            self.save_price_history(listing_id, current_price)
+        return listing_id
+
+
+    def save_price_history(self, listing_id, current_price):
+
+        return listing_id
 
 
