@@ -1,10 +1,17 @@
+from urllib.error import HTTPError
+from urllib.parse import quote, urlencode
+from urllib.request import urlopen, Request
+import json
 import scrapy
 from decimal import Decimal
 
 class DigitoniaSpider(scrapy.Spider):
     name="digitonia"
     start_urls = ["https://www.digitonia.co.ke/product/hp-zbook-firefly-14-g10-intel-core-i7-13th-gen-16gb-ram-512gb-ssd-14-0%E2%80%B3-display-laptop/"]
-    api_url = "http://localhost:8000/api/v1/products/"
+    products_api_url = "http://localhost:8000/api/v1/products/"
+    retailer_api_url = f"http://localhost:8000/api/v1/retailers/"
+    retailer_listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
+    canonical_product_name = "HP ZBook Firefly 14 G10 | Core i7 13th Gen…"
     retailer_name = "Digitonia Systems Ltd"
     retailer_website = "https://www.digitonia.co.ke/"
 
@@ -19,8 +26,6 @@ class DigitoniaSpider(scrapy.Spider):
                 callback=self.parse
             )
     async def parse(self, response):
-
-        name=response.css("h1::text").get()
         product_url =response.url
         current_price = response.css("p.price .woocommerce-Price-amount bdi::text").get()
         if current_price:
@@ -29,7 +34,96 @@ class DigitoniaSpider(scrapy.Spider):
         is_available=(availability.strip().lower()=="in stock"
                       if availability else False
                       )
-        category="Laptops"
-        brand="HP"
-        model_number = "ZBook Firefly 14 G10"
+        product_data= self.get_existing_record(self.products_api_url, self.canonical_product_name)
+        if not product_data:
+            self.logger.error("Existing product not found: %s", self.canonical_product_name)
+            return None
+        product_id = product_data["id"]
+        self.logger.info("Product ID is: %s", product_id)
+
+        self.save_retailer(product_id, product_url, current_price, is_available)
+        return None
+
+    def get_existing_record(self, endpoint, name):
+        url=f"{endpoint}by-name/{quote(name, safe="")}"
+        try:
+            with urlopen(url, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception as exc:
+            self.logger.error("Failed to retrieve existing record: %s", exc)
+            return None
+    def save_retailer(self, product_id, product_url, current_price, is_available):
+
+        retailer_payload= {
+            "name":self.retailer_name,
+            "website_url":self.retailer_website
+        }
+
+        request = Request(
+            self.retailer_api_url,
+            data=json.dumps(retailer_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+        try:
+            with urlopen(request, timeout=15) as response:
+                retailer_data=json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            if exc.code == 409:
+                retailer_data = self.get_existing_record(self.retailer_api_url, self.retailer_name)
+                if retailer_data:
+                    return retailer_data["id"]
+            self.logger.error(
+                "Retailer API error %s: %s",
+                exc.code,
+                exc.read().decode("utf-8", errors="replace")
+            )
+        except Exception as exc:
+            self.logger.error("Failed to save retailer: %s", exc)
+        retailer_id= retailer_data["id"]
+        self.save_retailer_listing(product_id,
+                                   retailer_id,
+                                   product_url,
+                                   current_price,
+                                   is_available)
+        return None
+
+    def save_retailer_listing(self, product_id, retailer_id, product_url, current_price, is_available):
+        listing_id=None
+        listing_payload={
+            "retailer_id": retailer_id,
+            "product_id": product_id,
+            "product_url":product_url,
+            "current_price":str(current_price),
+            "currency":"KES",
+            "is_available":is_available
+        }
+
+        request = Request(
+            self.retailer_listing_api_url,
+            data=json.dumps(listing_payload).encode("utf-8"),
+            headers={"Content-Type":"application/json"},
+            method="POST"
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                listing_data=json.loads(response.read().decode("utf-8"))
+                listing_id = listing_data["id"]
+        except HTTPError as exc:
+            if exc.code == 409:
+                params=urlencode({"product_url":product_url})
+                lookup_url=f"{self.retailer_listing_api_url}by-url?{params}"
+
+                try:
+                    with urlopen(lookup_url, timeout=15) as response:
+                        listing_data=json.loads(response.read().decode("utf-8"))
+                    return listing_data["id"]
+                except Exception as lookup_error:
+                    self.logger.error("Failed to retrieve existing listing: %s", lookup_error)
+                    return None
+        except Exception as exc:
+            self.logger.error("Failed to save retailer listing: %s", exc)
+        return listing_id
+
 
