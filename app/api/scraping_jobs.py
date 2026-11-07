@@ -65,6 +65,27 @@ def create_scraping_job(db:Session=Depends(get_db)):
             detail="Failed to create scraping job"
         )
 
+@router.get("/", status_code=status.HTTP_200_OK)
+def get_scraping_jobs(db: Session = Depends(get_db)):
+
+    query_statement = (
+        select(ScrapingJob)
+        .order_by(ScrapingJob.created_at.desc())
+    )
+
+    jobs = db.execute(query_statement).scalars().all()
+
+    return [
+        {
+            "id": job.id,
+            "status": job.status,
+            "created_at": job.created_at,
+            "started_at": job.started_at,
+            "completed_at": job.completed_at
+        }
+        for job in jobs
+    ]
+
 @router.get("/{job_id}", status_code=status.HTTP_200_OK)
 def get_scraping_job(job_id:int, db:Session=Depends(get_db)):
     job = db.get(ScrapingJob, job_id)
