@@ -10,6 +10,6 @@ class ScrapingJob(Base):
     __tablename__ = "scraping_jobs"
     id:Mapped[int] = mapped_column(Integer, primary_key=True)
     status:Mapped[str]=mapped_column(String(20), default="pending", nullable=False)
-    started_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True), nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=False)
+    started_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

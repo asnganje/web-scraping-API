@@ -35,8 +35,9 @@ def create_scraping_job(db:Session=Depends(get_db)):
             "jod_id":job.id,
             "status":job.status
         }
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        print(f"Error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create scraping job"
