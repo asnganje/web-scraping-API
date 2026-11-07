@@ -43,6 +43,41 @@ def get_price_comparison(
             "currency":listing.currency,
             "is_available":listing.is_available
         })
+    available_retailer_listings=[
+        (listing, retailer)
+        for listing, retailer in results
+        if listing.is_available is True
+        and listing.current_price is not None
+        and listing.currency == "KES"
+    ]
+
+    available_prices=[
+        listing.current_price
+        for listing, retailer in available_retailer_listings
+    ]
+
+    if available_prices:
+        average_price=sum(available_prices) / len(available_prices)
+        lowest_price=min(available_prices)
+        highest_price=max(available_prices)
+
+        lowest_listing, lowest_retailer=min(
+            available_retailer_listings,
+            key=lambda item:item[0].current_price
+        )
+
+        lowest_price_retailer = {
+            "retailer_name":lowest_retailer.name,
+            "price":lowest_listing.current_price,
+            "product_url":lowest_listing.product_url
+        }
+
+    else:
+        average_price = None
+        lowest_price = None
+        highest_price = None
+        lowest_price_retailer = None
+
 
     return {
         "product":{
@@ -52,7 +87,15 @@ def get_price_comparison(
             "model_number":product.model_number,
             "category":product.category
         },
-        "retailer_prices":retailer_prices
+        "retailer_prices":retailer_prices,
+        "price_statistics":{
+            "currency":"KES",
+            "average_price":average_price,
+            "lowest_price":lowest_price,
+            "highest_price":highest_price,
+            "retailer_count":len(available_prices),
+            "lowest_price_retailer":lowest_price_retailer
+        }
     }
 
 
