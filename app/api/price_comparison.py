@@ -57,7 +57,7 @@ def get_price_comparison(
     ]
 
     if available_prices:
-        average_price=sum(available_prices) / len(available_prices)
+        average_price=round(sum(available_prices) / len(available_prices),2)
         lowest_price=min(available_prices)
         highest_price=max(available_prices)
 
