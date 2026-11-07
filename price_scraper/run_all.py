@@ -2,14 +2,15 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
 from sqlalchemy import select
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.database.session import SessionLocal
 from app.models import ScrapingJob, ScrapingJobResult
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+
 SCRAPY_PROJECT_DIR = Path(__file__).resolve().parent
 
 SPIDERS = [
