@@ -4,14 +4,15 @@ from urllib.request import urlopen, Request
 import json
 import scrapy
 from decimal import Decimal
+from price_scraper.api_config import API_BASE_URL
 
 class DigitoniaSpider(scrapy.Spider):
     name="digitonia"
     start_urls = ["https://www.digitonia.co.ke/product/hp-zbook-firefly-14-g10-intel-core-i7-13th-gen-16gb-ram-512gb-ssd-14-0%E2%80%B3-display-laptop/"]
-    products_api_url = "http://localhost:8000/api/v1/products/"
-    retailer_api_url = f"http://localhost:8000/api/v1/retailers/"
-    retailer_listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
-    price_history_api_url = "http://localhost:8000/api/v1/price-history/"
+    products_api_url = f"{API_BASE_URL}/products/"
+    retailer_api_url = f"{API_BASE_URL}/retailers/"
+    retailer_listing_api_url = f"{API_BASE_URL}/retailer_listings/"
+    price_history_api_url = F"{API_BASE_URL}/price-history/"
     canonical_product_name = "HP ZBook Firefly 14 G10 | Core i7 13th Gen…"
     retailer_name = "Digitonia Systems Ltd"
     retailer_website = "https://www.digitonia.co.ke/"

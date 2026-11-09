@@ -4,15 +4,16 @@ from decimal import Decimal
 import json
 import scrapy
 from urllib.parse import quote, urlencode
+from price_scraper.api_config import API_BASE_URL
 
 
 class FahaviSpider(scrapy.Spider):
     name = "fahavi"
     start_urls = ["https://fahavicomputers.co.ke/product/hp-zbook-firefly-14-g10-price-in-kenya/"]
-    products_api_url = "http://localhost:8000/api/v1/products/"
-    retailer_api_url = f"http://localhost:8000/api/v1/retailers/"
-    retailer_listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
-    price_history_api_url = "http://localhost:8000/api/v1/price-history/"
+    products_api_url = f"{API_BASE_URL}/products/"
+    retailer_api_url = f"{API_BASE_URL}/retailers/"
+    retailer_listing_api_url = f"{API_BASE_URL}/retailer_listings/"
+    price_history_api_url = f"{API_BASE_URL}/price-history/"
     canonical_product_name = "HP ZBook Firefly 14 G10 | Core i7 13th Gen…"
     retailer_name = "Fahavi Computers"
     retailer_website = "https://fahavicomputers.co.ke/"

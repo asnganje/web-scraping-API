@@ -4,13 +4,17 @@ from urllib.parse import quote, urlencode
 from decimal import Decimal
 import scrapy
 from urllib.request import Request, urlopen
+from price_scraper.api_config import API_BASE_URL
 
 class LappyWorldSpider(scrapy.Spider):
     name = "lappyworld"
     start_urls = ["https://laptopsworld.co.ke/"]
     target_product_id="30551"
     target_product_name="HP ZBook Firefly 14 G10 | Core i7 13th Gen…"
-    api_url="http://localhost:8000/api/v1/products/"
+    products_api_url = f"{API_BASE_URL}/products/"
+    retailer_api_url = f"{API_BASE_URL}/retailers/"
+    retailer_listing_api_url = f"{API_BASE_URL}/retailer_listings/"
+    price_history_api_url = f"{API_BASE_URL}/price-history/"
 
     async def start(self):
         for url in self.start_urls:
@@ -45,12 +49,12 @@ class LappyWorldSpider(scrapy.Spider):
         current_price = card.css(
             ".price .woocommerce-Price-amount bdi::text"
         ).get()
-        current_price = Decimal(
-            current_price.replace("\xa0", "").replace(",", "").strip()
-        )
         if not current_price:
             self.logger.warning("Price not found")
             return
+        current_price = Decimal(
+            current_price.replace("\xa0", "").replace(",", "").strip()
+        )
 
         payload= {
             "name":name.strip(),
@@ -60,7 +64,7 @@ class LappyWorldSpider(scrapy.Spider):
         }
 
         request = Request(
-            self.api_url,
+            self.products_api_url,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type":"application/json"},
             method="POST"
@@ -75,7 +79,7 @@ class LappyWorldSpider(scrapy.Spider):
                 )
         except HTTPError as exc:
             if exc.code == 409:
-                product_data=self.get_existing_record(self.api_url, name.strip())
+                product_data=self.get_existing_record(self.products_api_url, name.strip())
                 if not product_data:
                     return
                 product_id = product_data["id"]
@@ -98,7 +102,7 @@ class LappyWorldSpider(scrapy.Spider):
     def save_retailer(self, product_id, product_url, current_price):
         self.logger.info("Extracted price: %s", current_price)
         retailer_name="Laptops World"
-        retailer_api_url="http://localhost:8000/api/v1/retailers/"
+        retailer_api_url=self.retailer_api_url
         payload={
             "name":retailer_name,
             "website_url":"https://laptopsworld.co.ke/"
@@ -149,7 +153,7 @@ class LappyWorldSpider(scrapy.Spider):
         self.save_retailer_listing(product_id, retailer_id, product_url, current_price)
         return None
     def save_retailer_listing(self, product_id, retailer_id, product_url, current_price):
-        listing_api_url = "http://localhost:8000/api/v1/retailer_listings/"
+        listing_api_url =  self.retailer_listing_api_url
         listing_id = None
 
         listing_payload={
@@ -194,7 +198,7 @@ class LappyWorldSpider(scrapy.Spider):
         return listing_id
 
     def save_price_history(self, listing_id, current_price):
-        price_history_api_url="http://localhost:8000/api/v1/price-history/"
+        price_history_api_url=self.price_history_api_url
 
         price_payload={
             "listing_id":listing_id,
