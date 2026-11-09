@@ -101,5 +101,5 @@ PLAYWRIGHT_BROWSER_TYPE = "chromium"
 CONCURRENT_REQUESTS = 4
 
 PLAYWRIGHT_LAUNCH_OPTIONS = {
-    "headless": False,
+    "headless": True,
 }

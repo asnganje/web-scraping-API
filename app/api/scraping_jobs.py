@@ -54,7 +54,7 @@ def create_scraping_job(db:Session=Depends(get_db)):
 
         return {
             "msg":"Scraping job created successfully",
-            "jod_id":job.id,
+            "job_id":job.id,
             "status":job.status
         }
     except Exception as exc:
